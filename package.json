@@ -1,0 +1,13 @@
+{
+  "name": "aes",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "aes-js": "^3.1.2",
+    "node-rsa": "^1.0.8"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
