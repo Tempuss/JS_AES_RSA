@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>index.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Report.html">Report</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#base64Decode">base64Decode</a></li><li><a href="global.html#base64Encode">base64Encode</a></li><li><a href="global.html#decryptAES">decryptAES</a></li><li><a href="global.html#decryptRSA">decryptRSA</a></li><li><a href="global.html#encryptAES">encryptAES</a></li><li><a href="global.html#encryptRSA">encryptRSA</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">index.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file Report Encryption
+ * @author Tempuss &lt;ben3787@gmail.com>
+ * @version 1.0.0
+ * @requires aes-js
+ * @requires crypto
+ * @requires node-rsa
+ */
+var aesjs = require("aes-js");
+const crypto = require("crypto");
+const NodeRSA = require("node-rsa");
+
+/**
+ * @description AES 암호화 함수
+ * @param {String} text 암호화할 문자열
+ * @param {String} key 암호화키
+ * @return {String} 암호화된 문자열
+ * @example
+ * let aesKey = crypto.randomBytes(32).toString("hex");
+ * let encryptedText = encryptAES("PLAINTEXT", aesKey);
+ */
+function encryptAES(text = "", key = "") {
+  key = Array.from(crypto.createHash("sha256").update(key).digest("int"));
+  let textBytes = aesjs.utils.utf8.toBytes(text);
+
+  let aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5));
+  let encryptedBytes = aesCtr.encrypt(textBytes);
+
+  let encryptedText = aesjs.utils.hex.fromBytes(encryptedBytes);
+  return encryptedText;
+}
+
+/**
+ * @description AES 복호화 함수
+ * @param {String} encryptedText 복호화할 문자열
+ * @param {String} key 복호화키
+ * @return {String} 복호화된 문자열
+ * @example
+ * let aesKey = crypto.randomBytes(32).toString("hex");
+ * let decryptedText = decryptAES("ENCRYPTEDTEXT", aesKey);
+ */
+function decryptAES(encryptedText = "", key = "") {
+  key = Array.from(crypto.createHash("sha256").update(key).digest("int"));
+  let encryptedBytes = aesjs.utils.hex.toBytes(encryptedText);
+
+  let aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5));
+  let decryptedBytes = aesCtr.decrypt(encryptedBytes);
+
+  let decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
+  return decryptedText;
+}
+
+/**
+ * @description RSA 암호화 함수
+ * @param {String} text 암호화할 문자열
+ * @param {String} publicKey RSA암호화에 사용될 공개키
+ * @return {String} 암호화된 문자열
+ * @example
+ * let publicKey = "-----BEGIN PUBLIC KEY-----\-";
+ * let encryptedText = encryptRSA("PLAIN", publicKey)
+ */
+function encryptRSA(text, publicKey = "") {
+  rsa.importKey(publicKey, "pkcs8-public-pem");
+  let encryptedText = rsa.encrypt(text, "base64");
+  return encryptedText;
+}
+
+/**
+ * @description RSA 복호화 함수
+ * @param {String} encryptedText 복호화할 문자열
+ * @param {String} privateKey RSA복호화에 사용될 비밀키
+ * @return {String} 복호화된 문자열
+ * @example
+ * let privateKey = "-----BEGIN PRIVATE KEY-----\-";
+ * let encryptedText = decryptRSA("ENCRYPTEDTEXT", privateKey)
+ */
+function decryptRSA(encryptedText, privateKey = "") {
+  rsa.importKey(privateKey, "pkcs8-private-pem");
+  let decryptedText = rsa.decrypt(encryptedText, "base64");
+  return decryptedText;
+}
+
+/**
+ * @description base64 디코드 함수
+ * @param {String} text 디코드할 문자열
+ * @return {String} 디코드된 문자열
+ * @example
+ * let decodedText = base64Decode("ENCODEDTEXT")
+ */
+function base64Decode(text = "") {
+  return Buffer.from(text, "base64").toString("ascii");
+}
+
+/**
+ * @description base64 인코드 함수
+ * @param {String} text 인코드할 문자열
+ * @return {String} 인코드된 문자열
+ * @example
+ * let encodedText = base64Encode("PLAINTEXT")
+ */
+function base64Encode(text = "") {
+  return Buffer.from(text, "ascii").toString("base64");
+}
+
+/**
+ * @class
+ * @classdesc 보고서 비대칭 암호화 로직을 위한 모듈. writer와 reader의 공개키를 이용하여 보고서 암호화를 처리. &lt;br>
+ * 랜덤생성한 AES키로 보고서를 암호화 한 후 해당 AES키를 writer, reader의 공개키로 각각 암호화하여 &lt;br>reader와 writer를 제외한 사용자들이 보고서 내용을 읽을수 없도록 암호화
+ */
+class Report {
+  constructor(writer, reader) {
+    this._writer = writer;
+    this._reader = reader;
+
+    this._content = "";
+
+    this._writerKey = "";
+    this._readerKey = "";
+
+    if (this._writer.privateKey == "") {
+      this._isWriter = false;
+      this._isReader = true;
+    } else {
+      this._isWriter = true;
+      this._isReader = false;
+    }
+  }
+
+  /**
+   * @type {string}
+   */
+  get content() {
+    let plainContent = "";
+    let reportKey = "";
+
+    if (this._isWriter) {
+      reportKey = decryptRSA(this._writerKey, this._writer.privateKey);
+    } else {
+      reportKey = decryptRSA(this._readerKey, this._reader.privateKey);
+    }
+    plainContent = decryptAES(this._content, reportKey);
+    return plainContent;
+  }
+
+  set content(content) {
+    let reportKey = "";
+    if (this._isWriter) {
+      reportKey = decryptRSA(this._writerKey, this._writer.privateKey);
+    } else {
+      reportKey = decryptRSA(this._readerKey, this._reader.privateKey);
+    }
+    this._content = encryptAES(content, reportKey);
+  }
+
+  set aesKey(aesKey) {
+    this._writerKey = encryptRSA(aesKey, this._writer.publicKey);
+    this._readerKey = encryptRSA(aesKey, this._reader.publicKey);
+  }
+}
+
+/**
+ * @class
+ * @classdesc 사용자별 비대칭키 식별을 위한 모듈로서 사용자 구분을 위한 식별자와 공개/비밀키를 저장하고 관리
+ */
+class User {
+  constructor(userId) {
+    this._userId = userId === undefined ? "" : userId;
+    this._publicKey = "";
+    this._privateKey = "";
+  }
+
+  get userId() {
+    return this._userId;
+  }
+
+  get publicKey() {
+    return this._publicKey;
+  }
+
+  set publicKey(publicKey = "") {
+    this._publicKey = publicKey;
+  }
+
+  get privateKey() {
+    return this._privateKey;
+  }
+
+  set privateKey(key = { privateKey: "", aesKey: "" }) {
+    decryptAES(key.privateKey, key.aesKey);
+    this._privateKey = decryptAES(key.privateKey, key.aesKey);
+  }
+}
+
+var aesKey = crypto.randomBytes(32).toString("hex");
+var rsa = new NodeRSA({ b: 512 });
+var text = "안녕하세요?";
+
+var publicKey =
+  "-----BEGIN PUBLIC KEY-----\
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgcJupCQcxp6vkkRa37hA\
+U2eI0HIf6Qtf/G4I1NUn/LZGcrvTat4sHZExjgfTXNGwuwlUASNOIGfgrGQWayb4\
++vyva1jQZivn5jSNsT9usm3GAlFgmVYbRIf3rhEsmQBZtb4sqdfQ1fc0cRAvUu3Q\
+D45+pULSjzIfXKBL3v4+D1vBllGsOhITRK7IiPRUwlZjJmaCRFuootybfdcn1xmr\
+5JnXCku5Fp7ikZl0lyHBmJiHNieYObDpr+TeCcgk2fBG+Vd7fpuXQZQYMVw4N0v7\
+PDnNuHtDDPW+Ia4pVRtuIxRyWpVd/bSmD60ysU8cE18PgBh8m1dgyxIF6m8GSuR8\
+WQIDAQAB\
+-----END PUBLIC KEY-----";
+
+var privateKey =
+  "-----BEGIN PRIVATE KEY-----\
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCBwm6kJBzGnq+S\
+RFrfuEBTZ4jQch/pC1/8bgjU1Sf8tkZyu9Nq3iwdkTGOB9Nc0bC7CVQBI04gZ+Cs\
+ZBZrJvj6/K9rWNBmK+fmNI2xP26ybcYCUWCZVhtEh/euESyZAFm1viyp19DV9zRx\
+EC9S7dAPjn6lQtKPMh9coEve/j4PW8GWUaw6EhNErsiI9FTCVmMmZoJEW6ii3Jt9\
+1yfXGavkmdcKS7kWnuKRmXSXIcGYmIc2J5g5sOmv5N4JyCTZ8Eb5V3t+m5dBlBgx\
+XDg3S/s8Oc24e0MM9b4hrilVG24jFHJalV39tKYPrTKxTxwTXw+AGHybV2DLEgXq\
+bwZK5HxZAgMBAAECggEANIahRP59S4V26s2Sv5cVKu3xOvfHpQ1+uG9OUeFLQ4gB\
+cnZHua3fy8Q3fBf83kjfsoavI5rICGQkVYRactue0/Kvi9Oy4HkLcWt6o/JafA3l\
+ppCMeuWZOh+UCjlXhUPYDLLD36jGF6bu6omzrm0n2PREnd8z3tVaTqNwsv7V3l8e\
+ESWZnDDDbEF5O8JCEhLniURz+kKKCEOBvJ9+IQcK/fx7JAFUlH0M7lM+bOhKT4XJ\
+8Wnafh5M3DzaNwQktYWTkiYbLmX9BPqtLLfL94Pa9bwUJskfoA4YRBAT4x0OpoV+\
+LwCmQpRxXn+XtoY8L6Q7RExpJNeEsVJ/Ke6xDhqqJQKBgQDjM/s5eti4uKuArS3o\
++N+yM/wCRxRAjHIuxqvQg77uCETkO83nTDvxJO2hd9JkT7kvLHWuDqE/cIOI2puj\
+iqU7HSDJ3pE5T5zhBL76IkG2XsKFa2W2J4cBKzx3fN1Gs+tgNTcFBu3YUhJscsf1\
+BWX3y8O6PZUqLVDIjFDQ5yQN2wKBgQCSNLdw3gXMZ6m3TU9h7mm8OdWcTgEa17mt\
+uZ4+bwdKMps1In+NAigG4c8CpW0JFQhcW+nToGK7GcIipkI/sbfxkS4GbrpxcqEv\
+mGmg8QnSDjdpUH9gPqrJLYWfP2Zd+qMzqibR5yWQvC1Brv8/UL7ns3wqMiKUtpAM\
+xtReRySG2wKBgC4sl0b0P20zIq+xAl6RjazCwdmYpnYD1QTKnYpv6/KmPZIA0XTL\
+WndEoQKqvlhil2kN6RCpqn2hGSpL+0t+VtwvrEU6dVsnYeOdOk7NfXtZwMCqte4S\
+FG7ZYZ2LA9FlqVVRG1BrOxU2gMYHgbm7EiENCUclUtZShVNsqNP71aj3AoGAUwyk\
+4vULICgGTLwaiott/mBvyWC52fCOZXNZwyc4YdpLNayJ/aQq7nXYLC2huRX8cNI5\
+CWBClPs1vo7odNvTm+GW3kqJl6XAj5Oo9KXWqT4wFZ+HKzmNs8cq7uGJmXqkt9VA\
+Rd1iBkwN/RCVpvaL6nuW3TUrVYQ6YTeULJWG1x8CgYAqxFEp1cuaGSo4qjzaVQdD\
+dF+m4TKHPi+SPCY67ykyG3ZIDU0SYVqZB31em2GgxgP9qWyWJuTC9t6i7hLHEFp7\
+hZ8Nswd7zwkuM01JkQk0L1aamyiguPFuh6rSX5L+Yca3L8AX7LyfvDlKRbJNwYBq\
+RTqMrNrJCpkfp5ZSkj77Wg==\
+-----END PRIVATE KEY-----";
+
+var encryptedPrivateKey = encryptAES(privateKey, "ben3787");
+
+const hacker = new User(1);
+hacker.publicKey = publicKey;
+hacker.privateKey = { privateKey: encryptedPrivateKey, aesKey: "ben3787" };
+
+const company = new User(2);
+company.publicKey = publicKey;
+//company.privateKey = { privateKey: encryptedPrivateKey, aesKey: "ben3787" };
+
+const report = new Report(hacker, company);
+report.aesKey = aesKey;
+report.content = "test";
+console.log(report);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.4</a> on Thu Jun 04 2020 16:40:56 GMT+0900 (대한민국 표준시) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>
